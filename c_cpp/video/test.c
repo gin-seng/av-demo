@@ -177,4 +177,12 @@ int main(void)
         // h264_sei_dec(pbybuf, fsize, &left_size);
         // fsize = left_size;
     // h264_sei_dec(pch_src, 122);
+    // KK_MOVE_WORD(layout_dat->tcrop.x, tmp_len, psrc, n_size);
+    // KK_MOVE_WORD(layout_dat->tcrop.y, tmp_len, psrc, n_size);
+    // KK_MOVE_WORD(layout_dat->tcrop.width, tmp_len, psrc, n_size);
+    // KK_MOVE_WORD(layout_dat->tcrop.height, tmp_len, psrc, n_size);
 
+    // KK_MOVE_WORD(layout_dat->tdest.x, tmp_len, psrc, n_size);
+    // KK_MOVE_WORD(layout_dat->tdest.y, tmp_len, psrc, n_size);
+    // KK_MOVE_WORD(layout_dat->tdest.width, tmp_len, psrc, n_size);
+    // KK_MOVE_WORD(layout_dat->tdest.height, tmp_len, psrc, n_size);

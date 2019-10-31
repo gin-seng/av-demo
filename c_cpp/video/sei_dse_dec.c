@@ -70,8 +70,7 @@ typedef struct tag_kk_layout_data{
     u16 length;
     u8  uid_len;
     u8* puid_data;   // 1 byte, 1
-    u16 uiddata_len;
-    u16 data_data_len;
+    u16 data_len;
     u8* pdata;
     u8  flag;
     u8  alpha;
@@ -300,42 +299,35 @@ static BOOL is_h264_nal_start_code(u8* pdat, int len)
     n_size-=data_len;
 
 
-static u8* layout_data_dec(const u8 *pv_data, int n_size, int* out_size)
+
+static void kk_log_layout_data(t_kk_layout_data* pdat)
 {
-    u8* psrc = (u8*)pv_data;
-    if ( (NULL == psrc) || (n_size < 1) )
+    if (NULL == pdat)
     {
-        printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
-        return NULL;
+        return;
     }
 
-    u16 tmp_len = 0;
-    u16 data_len = 0;
-    t_kk_layout_data* layout_dat = (t_kk_layout_data *)malloc(sizeof(t_kk_layout_data));
-    memset(&layout_dat, 0, sizeof(layout_dat));
+    printf("length....:%d[%x]\n", pdat->length);
+    printf("uid_len...:%d[%x]\n", pdat->uid_len);
+    printf("puid_data.:%s[[]]\n", pdat->puid_data);
+    printf("data_len..:%d[%x]\n", pdat->data_len);
+    printf("pdata.....:%s[[]]\n", pdat->pdata);
+    printf("flag......:%d[%x]\n", pdat->flag);
+    printf("alpha.....:%d[%x]\n", pdat->alpha);
+    printf("zorder....:%d[%x]\n", pdat->zorder);
+    printf("src_width.:%d[%x]\n", pdat->src_width);
+    printf("src_height:%d[%x]\n", pdat->src_height);
 
-    KK_MOVE_WORD(layout_dat->length, tmp_len, psrc, n_size);
-    KK_MOVE_BYTE(layout_dat->uid_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->data_data_len, tmp_len, psrc, n_size);
+    printf("tcrop[x,y,w,h]:%d[%x]-:%d[%x]-:%d[%x]-:%d[%x]\n", 
+        pdat->tcrop.x, pdat->tcrop.y, pdat->tcrop.width, pdat->tcrop.height);
+    printf("tdest[x,y,w,h]:%d[%x]-:%d[%x]-:%d[%x]-:%d[%x]\n", 
+        pdat->tdest.x, pdat->tdest.y, pdat->tdest.width, pdat->tdest.height);
+}
 
-    KK_MOVE_BUF(layout_dat->pdata, layout_dat->data_data_len, psrc, n_size);
 
-    KK_MOVE_BYTE(layout_dat->flag, psrc, n_size);
-    KK_MOVE_BYTE(layout_dat->alpha, psrc, n_size);
-    KK_MOVE_BYTE(layout_dat->zorder, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->src_width, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->src_height, tmp_len, psrc, n_size);
-
-    KK_MOVE_WORD(layout_dat->tcrop.x, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->tcrop.y, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->tcrop.width, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->tcrop.height, tmp_len, psrc, n_size);
-
-    KK_MOVE_WORD(layout_dat->tdest.x, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->tdest.y, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->tdest.width, tmp_len, psrc, n_size);
-    KK_MOVE_WORD(layout_dat->tdest.height, tmp_len, psrc, n_size);
-    return psrc;
+static u8* app_data_item_dec(const u8 *pv_data, int n_size, int* out_size)
+{
+    return NULL;
 }
 
 static int app_data_payload_dec(const u8 *pv_data, int n_size)
@@ -349,6 +341,84 @@ static int app_data_payload_dec(const u8 *pv_data, int n_size)
     int data_cnt = g_sei_dse.t_vid_sei.t_sei_app_data_payload.data_count = *psrc;
     psrc++;
     n_size--;
+    int id;
+    for (id = 0; id < data_cnt; id++)
+    {
+        s32 new_size = 0;
+        psrc = app_data_item_dec(psrc, n_size, &new_size);
+        n_size = new_size;
+    }
+    return KK_OK;
+}
+
+
+
+static u8* rect_dec(t_kk_rect* prect, const u8 *pv_data, int n_size, int* out_size)
+{
+    u8* psrc = (u8*)pv_data;
+    if ( (NULL == psrc) || (n_size < 1) || (NULL == prect) || (NULL == out_size)  )
+    {
+        printf("[%s:%d]-parameter error, data:%p, size:%d, prect:%p, out_size:%p\n", FL, psrc, n_size, prect, out_size);
+        return NULL;
+    }
+    int tmp_len = 0;
+    KK_MOVE_WORD(prect->x, tmp_len, psrc, n_size);
+    KK_MOVE_WORD(prect->y, tmp_len, psrc, n_size);
+    KK_MOVE_WORD(prect->width, tmp_len, psrc, n_size);
+    KK_MOVE_WORD(prect->height, tmp_len, psrc, n_size);
+    *out_size = n_size;
+    return psrc;
+}
+
+static u8* layout_data_dec(const u8 *pv_data, int n_size, int* out_size)
+{
+    u8* psrc = (u8*)pv_data;
+    if ( (NULL == psrc) || (n_size < 1) )
+    {
+        printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
+        return NULL;
+    }
+
+    u16 tmp_len = 0;
+    u16 data_len = 0;
+    t_kk_layout_data* playout_dat = (t_kk_layout_data *)malloc(sizeof(t_kk_layout_data));
+    memset(playout_dat, 0, sizeof(t_kk_layout_data));
+
+    KK_MOVE_WORD(playout_dat->length, tmp_len, psrc, n_size);
+
+    KK_MOVE_BYTE(playout_dat->uid_len, psrc, n_size);
+    KK_MOVE_BUF(playout_dat->puid_data, playout_dat->uid_len, psrc, n_size);
+
+    KK_MOVE_WORD(playout_dat->data_len, tmp_len, psrc, n_size);
+    KK_MOVE_BUF(playout_dat->pdata, playout_dat->data_len, psrc, n_size);
+
+    KK_MOVE_BYTE(playout_dat->flag, psrc, n_size);
+    KK_MOVE_BYTE(playout_dat->alpha, psrc, n_size);
+    KK_MOVE_BYTE(playout_dat->zorder, psrc, n_size);
+    KK_MOVE_WORD(playout_dat->src_width, tmp_len, psrc, n_size);
+    KK_MOVE_WORD(playout_dat->src_height, tmp_len, psrc, n_size);
+
+    psrc = rect_dec(&(playout_dat->tcrop), psrc, n_size, out_size);
+    psrc = rect_dec(&(playout_dat->tdest), psrc, *out_size, out_size);
+
+    kk_log_layout_data(playout_dat);
+
+    return psrc;
+}
+
+static int layout_data_payload_dec(const u8 *pv_data, int n_size)
+{
+    u8* psrc = (u8*)pv_data;
+    if ( (NULL == psrc) || (n_size < 1) )
+    {
+        printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
+        return KK_ERR_H264_PAYLOAD_DEC_PARA;
+    }
+    
+    int data_cnt = 0;
+    KK_MOVE_BYTE(data_cnt, psrc, n_size);
+    g_sei_dse.t_vid_sei.t_layout_data.data_cnt = data_cnt;
+    printf("sei layout data cnt:%d[%x]\n", data_cnt, data_cnt);
     int id;
     for (id = 0; id < data_cnt; id++)
     {
@@ -373,19 +443,21 @@ static int h264_payload_dec(const u8 *pv_data, int n_size)
     KK_MOVE_WORD(g_sei_dse.t_vid_sei.t_sei_payload.length, len, psrc, n_size);
     KK_MOVE_BYTE(ptype, psrc, n_size);
     g_sei_dse.t_vid_sei.t_sei_payload.payload_type = ptype;
-    printf("sei payload type:%d\n", ptype);
+    printf("sei payload len:%d[%x]\n", g_sei_dse.t_vid_sei.t_sei_payload.length, g_sei_dse.t_vid_sei.t_sei_payload.length);
+    printf("sei payload type:%d[%x]\n", ptype, ptype);
 
     switch (ptype)
     {
         case PTYPE_KK_APP:
         break;
         case PTYPE_APP_DATA:
-            app_data_payload_dec(psrc, n_size);
+            // app_data_payload_dec(psrc, n_size);
         break;
         case PTYPE_CFG_DATA:
             KK_MOVE_BYTE(g_sei_dse.t_vid_sei.tcfg_data.flag, psrc, n_size);
         break;
         case PTYPE_LAYOUT_DATA:
+            layout_data_payload_dec(psrc, n_size);
         break;
         default:
         printf("unnkow type:%d\n", ptype);
@@ -419,18 +491,18 @@ int h264_sei_dec(const u8 *pv_data, int n_size, int* posize)
     switch (nal_type)
     {
         case KK_H264_SEI_TAG:
-            printf("nal-type:is h264\n");
+            printf("nal-type:is h264:%d[%x]\n", nal_type, nal_type);
             if (KK_H264_SEI_USER_DEF_TAG == payload_type)
             {
-                printf("nal-type:is user-define-payload\n");
+                printf("nal-type:is user-define-payload:%d[%x]\n", payload_type, payload_type);
                 int payload_size = 0;
                 while (payload_size % 0xFF == 0) {
                     payload_size += *psrc;
                     psrc++;
                     n_size--;
-                    printf("payload_size 111= %i\n", payload_size);
+                    printf("payload_size 111= %i[%d][%x]\n", payload_size, payload_size, payload_size);
                 }
-                printf("payload_size = %i\n", payload_size);
+                printf("payload_size =  %i[%d][%x]\n", payload_size, payload_size, payload_size);
                 ret = h264_payload_dec(psrc, payload_size);
             }
         break;
