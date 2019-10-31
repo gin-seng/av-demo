@@ -1,3 +1,7 @@
+#include <stdio.h>
+#include <malloc.h>
+#include <memory.h>
+#include <stdlib.h>
 
 // layout data
 // 字段名	字段长度（byte）	取值	备注
@@ -21,14 +25,6 @@
 // Dest height	2		目标视频高度（布局字段）
 // DataData len业务数据
 
-#include <stdio.h>
-
-#define  FL      (__FUNCTION__, __LINE__)
-#define  FALSE   (0)
-#define  TRUE    (1)
-
-
-const int KK_AUDIO_DSE_TAG = 0x82;
 
 typedef  int           BOOL;
 
@@ -40,6 +36,26 @@ typedef          short s16;
 typedef unsigned char  u8;
 typedef          char  s8;
 typedef unsigned char* UPSTR; // unsigned pointer string
+
+
+#define  FL      (__FUNCTION__, __LINE__)
+#define  FALSE   (0)
+#define  TRUE    (1)
+
+
+const int KK_H264_SEI_TAG = 0x6; // 201
+const int KK_H264_SEI_USER_DEF_TAG = 0xC9;
+const int KK_AUDIO_DSE_TAG = 0x82;
+
+
+const u8 PTYPE_KK_APP = 1;
+const u8 PTYPE_APP_DATA = 2;
+const u8 PTYPE_CFG_DATA = 3;
+const u8 PTYPE_LAYOUT_DATA = 4;
+
+const static int KK_SEI_PAYLOAD_TYPE_YY = 1;
+
+
 
 // =====<<h264 sei===============
 typedef struct tag_kk_rect{
@@ -67,7 +83,7 @@ typedef struct tag_kk_layout_data{
 
     // UPSTR payloads;
 
-    t_kk_layout_data *pnext;
+    struct tag_kk_layout_data *pnext;
 }t_kk_layout_data;
 
 
@@ -142,15 +158,15 @@ typedef struct tag_kk_dse_payload{
 
 typedef struct tag_kk_volume_data{
     u8   volume_cnt;
-    t_kk_volume_para* papp_list;
+    struct tag_kk_volume_data* papp_list;
 }t_kk_volume_data;
 
 typedef struct tag_kk_volume_para{
     u16 length;
     u8  uid_len;
-    u8* puid_str; // malloc
+    u8* puid_str; // memory
     u8  volume;
-    t_kk_volume_para *pnext;
+    struct tag_kk_volume_para *pnext;
 }t_kk_volume_para;
 
 
@@ -213,7 +229,7 @@ typedef struct tag_kk_sei_dse{
             (((u32)(x) & 0x000000ff) << 24) \
             )  
 
-// int h264_sei_dec(void *pv_data, int n_size );
+
 int audio_dse_dec(void *pv_data, int n_size );
 
 const static int KK_OK = 0;
@@ -278,24 +294,24 @@ static BOOL is_h264_nal_start_code(u8* pdat, int len)
 
 
 #define  KK_MOVE_BUF(dst_ptr, data_len, psrc, src_size)\
-    dst_ptr = malloc(data_len);\
+    dst_ptr = (u8 *)malloc(data_len);\
     memcpy(dst_ptr, psrc, data_len);\
     psrc+=data_len;\
     n_size-=data_len;
 
 
-static int layout_data_dec(const void *pv_data, int n_size, int* out_size)
+static u8* layout_data_dec(const u8 *pv_data, int n_size, int* out_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     if ( (NULL == psrc) || (n_size < 1) )
     {
         printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
-        return KK_ERR_LAYOUT_DATA_DEC_PARA;
+        return NULL;
     }
 
     u16 tmp_len = 0;
     u16 data_len = 0;
-    t_kk_layout_data* layout_dat = malloc(sizeof(t_kk_layout_data));
+    t_kk_layout_data* layout_dat = (t_kk_layout_data *)malloc(sizeof(t_kk_layout_data));
     memset(&layout_dat, 0, sizeof(layout_dat));
 
     KK_MOVE_WORD(layout_dat->length, tmp_len, psrc, n_size);
@@ -319,11 +335,12 @@ static int layout_data_dec(const void *pv_data, int n_size, int* out_size)
     KK_MOVE_WORD(layout_dat->tdest.y, tmp_len, psrc, n_size);
     KK_MOVE_WORD(layout_dat->tdest.width, tmp_len, psrc, n_size);
     KK_MOVE_WORD(layout_dat->tdest.height, tmp_len, psrc, n_size);
+    return psrc;
 }
 
-static int app_data_payload_dec(const void *pv_data, int n_size)
+static int app_data_payload_dec(const u8 *pv_data, int n_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     if ( (NULL == psrc) || (n_size < 1) )
     {
         printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
@@ -339,12 +356,13 @@ static int app_data_payload_dec(const void *pv_data, int n_size)
         psrc = layout_data_dec(psrc, n_size, &new_size);
         n_size = new_size;
     }
+    return KK_OK;
 }
 
 
-static int h264_payload_dec(const void *pv_data, int n_size)
+static int h264_payload_dec(const u8 *pv_data, int n_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     if ( (NULL == psrc) || (n_size < 1) )
     {
         printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
@@ -373,87 +391,74 @@ static int h264_payload_dec(const void *pv_data, int n_size)
         printf("unnkow type:%d\n", ptype);
         break;
     }
-
+    return KK_OK;
 // 1:kk app data
 // 2:app data
 // 3:config data
 // 4:layout data
 }
 
-typedef enum emKK_SEI_PAYLOAD_TYPE
-{
-    PTYPE_KK_APP = 1,
-    PTYPE_APP_DATA,
-    PTYPE_CFG_DATA,
-    PTYPE_LAYOUT_DATA,
-}eKK_SEI_PAYLOAD_TYPE;
 
-const static int KK_SEI_PAYLOAD_TYPE_YY = 1;
-
-int h264_sei_dec(const void *pv_data, int n_size)
+int h264_sei_dec(const u8 *pv_data, int n_size, int* posize)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     int ret = KK_OK;
-    FILE *fp = NULL;
-    if ( (NULL == psrc) || (n_size < 1) )
+    
+    if ( (NULL == psrc) || (n_size < 1) || (NULL == posize) )
     {
-        printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
+        printf("E-[%s:%d]-parameter, data:%p, size:%d, osize:%p\n", FL, psrc, n_size, posize);
         return KK_ERR_H264_SEI_DEC_PARA;
     }
 
-    if (is_h264_nal_start_code(psrc, n_size))
+        // KK_MOVE_BYTE(nal_type, psrc, n_size);
+
+    u8 nal_type = *psrc;
+    u8 payload_type = *(psrc+1);
+    psrc += 2;
+    n_size -= 2;
+    switch (nal_type)
     {
-        psrc += 4;
-        u8 nal_type = *psrc;
-        u8 payload_type = *(psrc+1);
-        int step = 4+1;
- 
-        switch (nal_type)
-        {
-            case 6:
-                printf("nal-type:is h264\n");
-                if (201 == payload_type)
-                {
-                    printf("nal-type:is user-define-payload\n");
+        case KK_H264_SEI_TAG:
+            printf("nal-type:is h264\n");
+            if (KK_H264_SEI_USER_DEF_TAG == payload_type)
+            {
+                printf("nal-type:is user-define-payload\n");
+                int payload_size = 0;
+                while (payload_size % 0xFF == 0) {
+                    payload_size += *psrc;
                     psrc++;
-                    step++;
-                    int payload_size = 0;
-                    while (!feof(fp) && payload_size % 0xFF == 0) {
-                        payload_size += fgetc(fp);
-                        printf("payload_size 111= %i\n", payload_size);
-                    }
-                    printf("payload_size = %i\n", payload_size);
-                    ret = h264_payload_dec(psrc, payload_size);
+                    n_size--;
+                    printf("payload_size 111= %i\n", payload_size);
                 }
-            break;
-            case 78:
-                printf("nal-type:is h265\n");
-                if (201 == payload_type)
-                {
-                    printf("nal-type:is user-define-payload\n");
-                }
-            break;
-            default:
-                printf("unknow-nal-type:%d\n", nal_type);
-            break;
-        }
+                printf("payload_size = %i\n", payload_size);
+                ret = h264_payload_dec(psrc, payload_size);
+            }
+        break;
+        case 78:
+            printf("nal-type:is h265\n");
+            if (201 == payload_type)
+            {
+                printf("nal-type:is user-define-payload\n");
+            }
+        break;
+        default:
+            psrc -= 2;
+            n_size += 2;
+            printf("unknow-nal-type:%d\n", nal_type);
+        break;
     }
-    else
-    {
-        psrc++;
-    }
+    *posize = n_size;
     return ret;
 }
 
-
-static int aud_dse_vol_para_dec(const void *pv_data, int n_size, int* out_size)
+static u8* aud_dse_vol_para_dec(const u8 *pv_data, int n_size, int* out_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     s32 ret = KK_OK;
     if ( (NULL == psrc) || (n_size < 1) )
     {
         printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, psrc, n_size);
-        return KK_ERR_AUD_DSE_VOL_DEC_PARA;
+        return NULL;
     }
 
     u16 tmp = 0;
@@ -462,7 +467,7 @@ static int aud_dse_vol_para_dec(const void *pv_data, int n_size, int* out_size)
     if ( (vol_len < 2) || (vol_len > 500) )
     {
         printf("[%s:%d][E]volume length:%d, must in[2-500]\n", FL, vol_len);
-        return KK_ERR_AUD_DSE_VOL_DEC_VOL_LEN;
+        return NULL;
     }
     g_sei_dse.t_aud_dse.t_aud_vol_para.length = vol_len;
     KK_MOVE_BYTE(tmp, psrc, n_size);
@@ -473,17 +478,17 @@ static int aud_dse_vol_para_dec(const void *pv_data, int n_size, int* out_size)
     if (tmp > 100)
     {
         printf("[%s:%d][E]volume:%d, must in[0-100]\n", FL, tmp);
-        return KK_ERR_AUD_DSE_VOL_DEC_VOLUME;
+        return NULL;
     }
     g_sei_dse.t_aud_dse.t_aud_vol_para.volume = tmp;
-    return ret;
+    return psrc;
 }
 
 
 
-static int aud_dse_vol_data_dec(const void *pv_data, int n_size)
+static int aud_dse_vol_data_dec(const u8 *pv_data, int n_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     int ret = KK_OK;
     if ( (NULL == psrc) || (n_size < 1) )
     {
@@ -505,9 +510,9 @@ static int aud_dse_vol_data_dec(const void *pv_data, int n_size)
     return ret;
 }
 
-static int aud_dse_payload_dec(const void *pv_data, int n_size)
+static int aud_dse_payload_dec(const u8 *pv_data, int n_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     int ret = KK_OK;
     if ( (NULL == psrc) || (n_size < 1) )
     {
@@ -522,9 +527,9 @@ static int aud_dse_payload_dec(const void *pv_data, int n_size)
 }
 
 
-int aud_dse_dec(const void *pv_data, int n_size)
+int aud_dse_dec(const u8 *pv_data, int n_size)
 {
-    u8* psrc = pv_data;
+    u8* psrc = (u8*)pv_data;
     int ret = KK_OK;
     if ( (NULL == psrc) || (n_size < 1) )
     {
@@ -548,14 +553,61 @@ int aud_dse_dec(const void *pv_data, int n_size)
 }
 
 
+#define FILE_SRC  "C:\\Users\\isuke\\10078-1.h264"
+int tst_h264_se(void)
+{
+    FILE *fp_src = fopen(FILE_SRC, "rb");
+    if (NULL == fp_src)
+    {
+        printf("open file:%s fail\n", FILE_SRC);
+        return 20500;
+    }
+
+    printf("sizeof(g_sei_dse):%d\n", sizeof(g_sei_dse));
+    memset(&g_sei_dse, 0, sizeof(g_sei_dse));
+
+    fseek(fp_src, 0L, SEEK_END);
+    u32 fsize = ftell(fp_src);
+    printf("file:%s, size:%d\n", FILE_SRC, fsize);
+    fseek(fp_src, 0L, SEEK_SET);
+    u8* pbybuf = (u8*)malloc(fsize);
+    if (NULL == pbybuf)
+    {
+        printf("memory for file size:%d buffer fail\n", fsize);
+        return 20510;
+    }
+    fread(pbybuf, fsize, 1, fp_src);
+    int left_size = 0;
+    int icount = 0;
+    while (fsize > 0)
+    {
+        if ( (0 == *pbybuf) && (0 == *(pbybuf+1)) && (0 == *(pbybuf+2)) && (1 == *(pbybuf+3)) )
+        {
+            icount++;
+            printf("find h264-tag:%d\n", icount);
+            pbybuf += 4;
+            fsize -= 4;
+            h264_sei_dec(pbybuf, fsize, &left_size);
+            fsize = left_size;
+        }
+        else
+        {
+            pbybuf++;
+            fsize--;
+        }
+    }
+    
+    fclose(fp_src);
+    return 0;
+}
 
 int main(void)
 {
-    const char *pch_src = "We#Love#YY";
-    memset(&g_sei_dse, 0, sizeof(g_sei_dse));
-    h264_sei_dec(pch_src, 122);
-    
+    printf("--------main-bgn================");
+    tst_h264_se();
+    printf("--------func-end================");
     system("pause");
+    printf("--------main-ext================");
     return 0;
 }
 
