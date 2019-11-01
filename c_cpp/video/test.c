@@ -186,3 +186,73 @@ int main(void)
     // KK_MOVE_WORD(layout_dat->tdest.y, tmp_len, psrc, n_size);
     // KK_MOVE_WORD(layout_dat->tdest.width, tmp_len, psrc, n_size);
     // KK_MOVE_WORD(layout_dat->tdest.height, tmp_len, psrc, n_size);
+
+
+// #define  KK_MOVE_BYTE(ret_dat, psrc, src_size)\
+//     {                     \
+//         ret_dat = *psrc;  \
+//         psrc++;           \
+//         src_size--;       \
+//     }
+// #define  KK_MOVE_WORD2(ret_dat, tmp_dat, psrc, src_size)\
+//     {                                  \
+//         tmp_dat = *(u16 *)psrc;        \
+//         ret_dat = BSWAP_16(tmp_dat);   \
+//         psrc += 2;                     \
+//         src_size -= 2;                 \
+//     }
+
+
+// =====>>audio dse===============
+
+// struct FrameListData {
+//     void *buf;                       /**< compressed data buffer */
+//     size_t sz;                       /**< length of compressed data */
+//     void *buf_alpha;
+//     size_t sz_alpha;
+//     int64_t pts;                     /**< time stamp to show frame
+//                                           (in timebase units) */
+//     unsigned long duration;          /**< duration to show frame
+//                                           (in timebase units) */
+//     uint32_t flags;                  /**< flags for this frame */
+//     uint64_t sse[4];
+//     u32 have_sse;                    /**< true if we have pending sse[] */
+//     uint64_t frame_number;
+//     struct FrameListData *next;
+// };
+
+// typedef struct tag_kk_h264_sei{
+//     s32 sei_payload_size;  // payload_size/255+1
+//     UPSTR payloads;
+// }t_kk_h264_sei;
+
+// static BOOL is_h264_nal_start_code(u8* pdat, u32 len)
+// {
+//     if ( (NULL == pdat) || (len < 4) )
+//     {
+//         printf("[%s:%d]-parameter error, data:%p, size:%d\n", FL, pdat, len);
+//         return FALSE;
+//     }
+
+//     if (0 != *pdat)
+//     {
+//         return FALSE;
+//     }
+//     if (0 != *(pdat+1))
+//     {
+//         return FALSE;
+//     }
+//     if (0 != *(pdat+2))
+//     {
+//         return FALSE;
+//     }
+//     if (1 != *(pdat+3))
+//     {
+//         return FALSE;
+//     }
+
+//     return TRUE;
+// }
+
+// ./sei_parser.exe  C:\\Users\\isuke\\wk\\media\\video\\tst\\trailer.h264
+
