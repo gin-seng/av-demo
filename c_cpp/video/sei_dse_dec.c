@@ -246,8 +246,31 @@ const static int KK_ERR_AUD_DSE_VOL_DEC_VOL_LEN = 20122;
 const static int KK_ERR_AUD_DSE_VOL_DEC_VOLUME = 20123;
 
 
+#define  KK_MOVE_BYTE(ret_dat, psrc, src_size)\
+    {                                         \
+        ret_dat = *psrc;                      \
+        psrc++;                               \
+        src_size--;                           \
+    }
+
+
+#define  KK_MOVE_WORD(ret_dat, tmp_dat, psrc, src_size)\
+    tmp_dat = *(u16 *)psrc;                            \
+    ret_dat = BSWAP_16(tmp_dat);                       \
+    psrc += 2;                                         \
+    src_size -= 2;
+
+
+#define  KK_MOVE_BUF(dst_ptr, data_len, psrc, src_size)\
+    dst_ptr = (u8 *)malloc(data_len + 1);              \
+    memset(dst_ptr, 0, data_len + 1);                  \
+    memcpy(dst_ptr, psrc, data_len);                   \
+    psrc+=data_len;                                    \
+    n_size-=data_len;
+
 
 static t_kk_sei_dse g_sei_dse;
+
 static BOOL is_h264_nal_start_code(u8* pdat, int len)
 {
     if ( (NULL == pdat) || (len < 4) )
@@ -277,27 +300,6 @@ static BOOL is_h264_nal_start_code(u8* pdat, int len)
 }
 
 
-#define  KK_MOVE_BYTE(ret_dat, psrc, src_size)\
-    {\
-        ret_dat = *psrc;\
-        psrc++;\
-        src_size--;\
-    }
-
-
-#define  KK_MOVE_WORD(ret_dat, tmp_dat, psrc, src_size)\
-    tmp_dat = *(u16 *)psrc;\
-    ret_dat = BSWAP_16(tmp_dat);\
-    psrc+=2;\
-    src_size-=2;
-
-
-#define  KK_MOVE_BUF(dst_ptr, data_len, psrc, src_size)\
-    dst_ptr = (u8 *)malloc(data_len);\
-    memcpy(dst_ptr, psrc, data_len);\
-    psrc+=data_len;\
-    n_size-=data_len;
-
 
 
 static void kk_log_layout_data(t_kk_layout_data* pdat)
@@ -307,20 +309,23 @@ static void kk_log_layout_data(t_kk_layout_data* pdat)
         return;
     }
 
-    printf("length....:%d[%x]\n", pdat->length);
-    printf("uid_len...:%d[%x]\n", pdat->uid_len);
-    printf("puid_data.:%s[[]]\n", pdat->puid_data);
-    printf("data_len..:%d[%x]\n", pdat->data_len);
-    printf("pdata.....:%s[[]]\n", pdat->pdata);
-    printf("flag......:%d[%x]\n", pdat->flag);
-    printf("alpha.....:%d[%x]\n", pdat->alpha);
-    printf("zorder....:%d[%x]\n", pdat->zorder);
-    printf("src_width.:%d[%x]\n", pdat->src_width);
-    printf("src_height:%d[%x]\n", pdat->src_height);
+    printf("length....:%d[%x]\n", pdat->length, pdat->length);
+    printf("uid_len...:%d[%x]\n", pdat->uid_len, pdat->uid_len);
+    printf("puid_data.:%s\n",     pdat->puid_data);
+    printf("data_len..:%d[%x]\n", pdat->data_len, pdat->data_len);
+    printf("pdata.....:%s\n",     pdat->pdata);
+    printf("flag......:%d[%x]\n", pdat->flag, pdat->flag);
+    printf("alpha.....:%d[%x]\n", pdat->alpha, pdat->alpha);
+    printf("zorder....:%d[%x]\n", pdat->zorder, pdat->zorder);
+    printf("src_width.:%d[%x]\n", pdat->src_width, pdat->src_width);
+    printf("src_height:%d[%x]\n", pdat->src_height, pdat->src_height);
 
-    printf("tcrop[x,y,w,h]:%d[%x]-:%d[%x]-:%d[%x]-:%d[%x]\n", 
+    printf("tcrop[x,y,w,h]:[%d-%d-%d-%d][%x-%x-%x-%x]\n", 
+        pdat->tcrop.x, pdat->tcrop.y, pdat->tcrop.width, pdat->tcrop.height,
         pdat->tcrop.x, pdat->tcrop.y, pdat->tcrop.width, pdat->tcrop.height);
-    printf("tdest[x,y,w,h]:%d[%x]-:%d[%x]-:%d[%x]-:%d[%x]\n", 
+
+    printf("tdest[x,y,w,h]:[%d-%d-%d-%d][%x-%x-%x-%x]\n", 
+        pdat->tdest.x, pdat->tdest.y, pdat->tdest.width, pdat->tdest.height,
         pdat->tdest.x, pdat->tdest.y, pdat->tdest.width, pdat->tdest.height);
 }
 
@@ -381,8 +386,8 @@ static u8* layout_data_dec(const u8 *pv_data, int n_size, int* out_size)
 
     u16 tmp_len = 0;
     u16 data_len = 0;
-    t_kk_layout_data* playout_dat = (t_kk_layout_data *)malloc(sizeof(t_kk_layout_data));
-    memset(playout_dat, 0, sizeof(t_kk_layout_data));
+    t_kk_layout_data* playout_dat = (t_kk_layout_data *)malloc(sizeof(t_kk_layout_data)+1);
+    memset(playout_dat, 0, sizeof(t_kk_layout_data)+1);
 
     KK_MOVE_WORD(playout_dat->length, tmp_len, psrc, n_size);
 
@@ -500,9 +505,9 @@ int h264_sei_dec(const u8 *pv_data, int n_size, int* posize)
                     payload_size += *psrc;
                     psrc++;
                     n_size--;
-                    printf("payload_size 111= %i[%d][%x]\n", payload_size, payload_size, payload_size);
+                    printf("payload_size-in[%d][%x]\n", payload_size, payload_size, payload_size);
                 }
-                printf("payload_size =  %i[%d][%x]\n", payload_size, payload_size, payload_size);
+                printf("payload_size:[%d][%x]\n", payload_size, payload_size, payload_size);
                 ret = h264_payload_dec(psrc, payload_size);
             }
         break;
