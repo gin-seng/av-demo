@@ -1,7 +1,5 @@
-#include <stdio.h>
-#include <malloc.h>
-#include <memory.h>
-#include <stdlib.h>
+#ifndef __YY_SEI_DSE_DEC_H__
+#define __YY_SEI_DSE_DEC_H__
 
 // layout data
 // 字段名	字段长度（byte）	取值	备注
@@ -39,61 +37,65 @@ typedef  u32            BOOL;
 #define  TRUE    (1)
 
 //==const define begin==========================================================
-const u32 KK_H264_SEI_TAG = 0x6;
-const u32 KK_H264_SEI_USER_DEF_TAG = 0xC9; // 201
-const u32 KK_AUDIO_DSE_TAG = 0x82;
+#define  KK_H264_SEI_TAG  0x6
+#define  KK_H264_SEI_USER_DEF_TAG  0xC9 // 201
+#define  KK_AUDIO_DSE_TAG  0x82
 
-const u8 PTYPE_KK_APP = 1;
-const u8 PTYPE_APP_DATA = 2;
-const u8 PTYPE_CFG_DATA = 3;
-const u8 PTYPE_LAYOUT_DATA = 4;
+typedef enum{
 
-const static u32 KK_SEI_PAYLOAD_TYPE_YY = 1;
+    ePTYPE_KK_APP = 1,
+    ePTYPE_APP_DATA,
+    ePTYPE_CFG_DATA,
+    ePTYPE_LAYOUT_DATA
+}emKK_SEI_TYPE;
+
+
+#define   KK_SEI_PAYLOAD_TYPE_YY  1
 
 //----error number--------------------------------------------------------------
-const static u32 KK_OK = 0;
-const static u32 KK_ERR_H264_SEI_DEC_PARA = 20001;
-const static u32 KK_ERR_SEI_DEC_DAT_SZ = 20002;
+#define   KK_OK  0
+#define   KK_ERR_H264_SEI_DEC_PARA  20001
+#define   KK_ERR_SEI_DEC_DAT_SZ  20002
 
-const static u32 KK_ERR_H264_PAYLOAD_DEC_PARA = 20010;
-const static u32 KK_ERR_H264_PAYLOAD_DEC_DAT_SZ = 20011;
+#define   KK_ERR_H264_PAYLOAD_DEC_PARA  20010
+#define   KK_ERR_H264_PAYLOAD_DEC_DAT_SZ  20011
 
-const static u32 KK_ERR_APP_DAT_PAYLOAD_DEC_PARA = 20016;
-const static u32 KK_ERR_APP_DAT_PAYLOAD_DEC_DAT_SZ = 20017;
+#define   KK_ERR_APP_DAT_PAYLOAD_DEC_PARA  20016
+#define   KK_ERR_APP_DAT_PAYLOAD_DEC_DAT_SZ  20017
 
-const static u32 KK_ERR_LAYOUT_PAYLOAD_DEC_PARA = 20020;
-const static u32 KK_ERR_LAYOUT_PAYLOAD_DEC_DAT_SZ = 20021;
+#define   KK_ERR_LAYOUT_PAYLOAD_DEC_PARA  20020
+#define   KK_ERR_LAYOUT_PAYLOAD_DEC_DAT_SZ  20021
 
-const static u32 KK_ERR_LAYOUT_DATA_DEC_PARA = 20030;
-const static u32 KK_ERR_LAYOUT_DATA_DEC_DAT_SZ = 20031;
+#define   KK_ERR_LAYOUT_DATA_DEC_PARA  20030
+#define   KK_ERR_LAYOUT_DATA_DEC_DAT_SZ  20031
 
-const static u32 KK_ERR_CROP_RECT_PARA = 20050;
-const static u32 KK_ERR_CROP_RECT_DAT_SZ = 20051;
+#define   KK_ERR_CROP_RECT_PARA  20050
+#define   KK_ERR_CROP_RECT_DAT_SZ  20051
 
-const static u32 KK_ERR_DST_RECT_PARA = 20053;
-const static u32 KK_ERR_DST_RECT_DAT_SZ = 20054;
+#define   KK_ERR_DST_RECT_PARA  20053
+#define   KK_ERR_DST_RECT_DAT_SZ  20054
 
-const static u32 KK_ERR_AUD_DSE_DEC_PARA = 20101;
-const static u32 KK_ERR_AUD_DSE_DEC_DAT_SZ = 20102;
+#define   KK_ERR_AUD_DSE_DEC_PARA  20101
+#define   KK_ERR_AUD_DSE_DEC_DAT_SZ  20102
 
-const static u32 KK_ERR_AUD_DSE_PAYLOAD_DEC_PARA = 20111;
-const static u32 KK_ERR_AUD_DSE_PAYLOAD_DEC_DAT_SZ = 20112;
+#define   KK_ERR_AUD_DSE_PAYLOAD_DEC_PARA  20111
+#define   KK_ERR_AUD_DSE_PAYLOAD_DEC_DAT_SZ  20112
 
-const static u32 KK_ERR_AUD_DSE_VOL_DATA_DEC_PARA = 20121;
-const static u32 KK_ERR_AUD_DSE_VOL_DATA_DEC_DAT_SZ = 20121;
+#define   KK_ERR_AUD_DSE_VOL_DATA_DEC_PARA  20121
+#define   KK_ERR_AUD_DSE_VOL_DATA_DEC_DAT_SZ  20121
 
-const static u32 KK_ERR_AUD_DSE_VOL_PARA_DEC_PARA = 20151;
-const static u32 KK_ERR_AUD_DSE_VOL_PARA_DEC_DAT_SZ = 20152;
-const static u32 KK_ERR_AUD_DSE_VOL_PARA_DEC_VOL_LEN = 20153;
-const static u32 KK_ERR_AUD_DSE_VOL_PARA_DEC_VOLUME = 20154;
+#define   KK_ERR_AUD_DSE_VOL_PARA_DEC_PARA  20151
+#define   KK_ERR_AUD_DSE_VOL_PARA_DEC_DAT_SZ  20152
+#define   KK_ERR_AUD_DSE_VOL_PARA_DEC_VOL_LEN  20153
+#define   KK_ERR_AUD_DSE_VOL_PARA_DEC_VOLUME  20154
 
-const static u32 KK_ERR_AUD_DSE_VOL_DEC_PARA = 20131;
-const static u32 KK_ERR_AUD_DSE_VOL_DEC_VOL_LEN = 20132;
-const static u32 KK_ERR_AUD_DSE_VOL_DEC_VOLUME = 20133;
+#define   KK_ERR_AUD_DSE_VOL_DEC_PARA  20131
+#define   KK_ERR_AUD_DSE_VOL_DEC_VOL_LEN  20132
+#define   KK_ERR_AUD_DSE_VOL_DEC_VOLUME  20133
 
-const static u32 KK_ERR_MEM_LAYOUT_PAYLOAD_DATA  = 21001;
-const static u32 KK_ERR_MEM_LAYOUT_UID_DATA  = 21002;
-const static u32 KK_ERR_MEM_LAYOUT_DATA  = 21003;
+#define   KK_ERR_MEM_LAYOUT_PAYLOAD_DATA   21001
+#define   KK_ERR_MEM_LAYOUT_UID_DATA   21002
+#define   KK_ERR_MEM_LAYOUT_DATA   21003
 //==const define end============================================================
 //==============================================================================
 
@@ -223,3 +225,9 @@ typedef struct tag_kk_sei_dse{
 }t_kk_sei_dse;
 //==struct define end===========================================================
 //==============================================================================
+
+u32 kk_h264_sei_dec(t_kk_video_sei *psei, t_data_size* pds);
+u32 kk_aud_dse_dec(t_kk_audio_dse *pdse, t_data_size* pds);
+
+#endif
+

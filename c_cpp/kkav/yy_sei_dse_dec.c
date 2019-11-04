@@ -2,6 +2,7 @@
 #include <malloc.h>
 #include <memory.h>
 #include <stdlib.h>
+
 #include "yy_sei_dse_dec.h"
 
 //====function define begin=====================================================
@@ -60,7 +61,7 @@
 //====function define end=======================================================
 //==============================================================================
 
-static t_kk_sei_dse g_sei_dse;
+
 
 static void kk_log_layout_data(t_kk_layout_data* pdat)
 {
@@ -218,15 +219,15 @@ static u32 h264_payload_dec(t_kk_video_sei *psei, t_data_size* pds)
 
     switch (bytype)
     {
-        case PTYPE_KK_APP:
+        case ePTYPE_KK_APP:
         break;
-        case PTYPE_APP_DATA:
+        case ePTYPE_APP_DATA:
             app_data_payload_dec(psei, pds);
         break;
-        case PTYPE_CFG_DATA:
+        case ePTYPE_CFG_DATA:
             KK_MOVE_BYTE(psei->tcfg_data.flag, pds);
         break;
-        case PTYPE_LAYOUT_DATA:
+        case ePTYPE_LAYOUT_DATA:
             iret = layout_data_payload_dec(psei, pds);
         break;
         default:
@@ -237,7 +238,7 @@ static u32 h264_payload_dec(t_kk_video_sei *psei, t_data_size* pds)
     return iret;
 }
 
-u32 h264_sei_dec(t_kk_video_sei *psei, t_data_size* pds)
+u32 kk_h264_sei_dec(t_kk_video_sei *psei, t_data_size* pds)
 {
     KK_FUNC_PARA_RET(psei, pds, KK_ERR_H264_SEI_DEC_PARA, KK_ERR_SEI_DEC_DAT_SZ);
     u32 ret = KK_OK;
@@ -345,7 +346,7 @@ static u32 aud_dse_payload_dec(t_kk_audio_dse *pdse, t_data_size* pds)
     return ret;
 }
 
-u32 aud_dse_dec(t_kk_audio_dse *pdse, t_data_size* pds)
+u32 kk_aud_dse_dec(t_kk_audio_dse *pdse, t_data_size* pds)
 {
     KK_FUNC_PARA_RET(pdse, pds, KK_ERR_AUD_DSE_DEC_PARA, KK_ERR_AUD_DSE_DEC_DAT_SZ);
     u32 ret = KK_OK;
@@ -365,72 +366,81 @@ u32 aud_dse_dec(t_kk_audio_dse *pdse, t_data_size* pds)
 }
 
 
-#define FILE_SRC  "C:\\Users\\isuke\\10078-1.h264"
-u32 is_aud_dse_tag = 0;
-u32 tst_h264_se(void)
-{
-    FILE *fp_src = fopen(FILE_SRC, "rb");
-    if (NULL == fp_src)
-    {
-        printf("open file:%s fail\n", FILE_SRC);
-        return 20500;
-    }
 
-    t_kk_video_sei *pvid_sei = &g_sei_dse.t_vid_sei;
-    t_kk_audio_dse *paud_dse = &g_sei_dse.t_aud_dse;
+// #define FILE_SRC  "C:\\Users\\isuke\\10078-1.h264"
+// u32 is_aud_dse_tag = 0;
+// u32 tst_h264_se(void)
+// {
+//     t_kk_sei_dse g_sei_dse;
+//     FILE *fp_src = fopen(FILE_SRC, "rb");
+//     if (NULL == fp_src)
+//     {
+//         printf("open file:%s fail\n", FILE_SRC);
+//         return 20500;
+//     }
+
+//     t_kk_video_sei *pvid_sei = &g_sei_dse.t_vid_sei;
+//     t_kk_audio_dse *paud_dse = &g_sei_dse.t_aud_dse;
     
-    printf("sizeof(g_sei_dse):%d\n", sizeof(g_sei_dse));
-    memset(&g_sei_dse, 0, sizeof(g_sei_dse));
+//     printf("sizeof(g_sei_dse):%d\n", sizeof(g_sei_dse));
+//     memset(&g_sei_dse, 0, sizeof(g_sei_dse));
 
-    fseek(fp_src, 0L, SEEK_END);
-    u32 fsize = ftell(fp_src);
-    printf("file:%s, size:%d\n", FILE_SRC, fsize);
-    fseek(fp_src, 0L, SEEK_SET);
-    u8* pbybuf = (u8*)malloc(fsize);
-    if (NULL == pbybuf)
-    {
-        printf("memory for file size:%d buffer fail\n", fsize);
-        return 20510;
-    }
-    fread(pbybuf, fsize, 1, fp_src);
-    u32 icount = 0;
-    t_data_size tdat_sz = {pbybuf, fsize};
-    while (tdat_sz.size > 0)
-    {
-        u8* tmp_buf = tdat_sz.pdata;
-        printf("tmp_buf:0x%p\n", tmp_buf);
-        if ( (0 == *tmp_buf) && (0 == *(tmp_buf+1)) && (0 == *(tmp_buf+2)) && (1 == *(tmp_buf+3)) )
-        {
-            icount++;
-            printf("find video-h264-tag:%d\n", icount);
-            tdat_sz.pdata += 4;
-            tdat_sz.size -= 4;
-            h264_sei_dec(pvid_sei, &tdat_sz);
-        }
-        else if (is_aud_dse_tag)
-        {
-            printf("find audio-dse-tag:%d\n", icount);
-            aud_dse_dec(paud_dse, &tdat_sz);
-        }
-        else
-        {
-            printf("dat:%x\n", *tdat_sz.pdata);
-            tdat_sz.pdata++;
-            tdat_sz.size--;
-        }
-    }
+//     fseek(fp_src, 0L, SEEK_END);
+//     u32 fsize = ftell(fp_src);
+//     printf("file:%s, size:%d\n", FILE_SRC, fsize);
+//     fseek(fp_src, 0L, SEEK_SET);
+//     u8* pbybuf = (u8*)malloc(fsize);
+//     if (NULL == pbybuf)
+//     {
+//         printf("memory for file size:%d buffer fail\n", fsize);
+//         return 20510;
+//     }
+//     fread(pbybuf, fsize, 1, fp_src);
+//     u32 icount = 0;
+//     t_data_size tdat_sz = {pbybuf, fsize};
+//     while (tdat_sz.size > 0)
+//     {
+//         u8* tmp_buf = tdat_sz.pdata;
+//         printf("tmp_buf:0x%p\n", tmp_buf);
+//         if ( (0 == *tmp_buf) && (0 == *(tmp_buf+1)) && (0 == *(tmp_buf+2)) && (1 == *(tmp_buf+3)) )
+//         {
+//             icount++;
+//             printf("find video-h264-tag:%d\n", icount);
+//             tdat_sz.pdata += 4;
+//             tdat_sz.size -= 4;
+//             kk_h264_sei_dec(pvid_sei, &tdat_sz);
+//         }
+//         else if (is_aud_dse_tag)
+//         {
+//             printf("find audio-dse-tag:%d\n", icount);
+//             kk_aud_dse_dec(paud_dse, &tdat_sz);
+//         }
+//         else
+//         {
+//             printf("dat:%x\n", *tdat_sz.pdata);
+//             tdat_sz.pdata++;
+//             tdat_sz.size--;
+//         }
+//     }
     
-    fclose(fp_src);
-    return 0;
-}
+//     fclose(fp_src);
+//     return 0;
+// }
 
-int main(void)
-{
-    printf("--------main-bgn================");
-    tst_h264_se();
-    printf("--------func-end================");
-    system("pause");
-    printf("--------main-ext================");
-    return 0;
-}
+// int main(void)
+// {
+//     printf("--------main-bgn================");
+//     tst_h264_se();
+//     printf("--------func-end================");
+//     system("pause");
+//     printf("--------main-ext================");
+//     return 0;
+// }
 
+
+// #include"mathfunc.h"
+
+// double scjfunc(double a, double b)
+// {
+//     return a*b*b;
+// }
